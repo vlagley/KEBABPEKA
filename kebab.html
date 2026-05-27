@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PekaKebab Menu</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #F9F9F9;
+            --card-color: #FFFFFF;
+            --accent-color: #FF6B00;
+            --accent-hover: #E05E00;
+            --text-color: #1A1A1A;
+            --text-muted: #7A7A7A;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 16px 16px 100px 16px;
+            overflow-x: hidden;
+        }
+
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Список меню */
+        .menu-list {
+            display: grid;
+            grid-template-columns: 100%;
+            gap: 12px;
+        }
+
+        .menu-card {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            cursor: pointer;
+        }
+
+        .menu-card:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .card-info h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .card-info p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .card-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-color);
+            background: rgba(255, 107, 0, 0.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        /* Фиксированная нижняя панель */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-color);
+            padding: 16px;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .order-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .main-btn {
+            background-color: var(--accent-color);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .main-btn:disabled {
+            background-color: #EAEAEA;
+            color: #999999;
+            cursor: not-allowed;
+        }
+
+        /* Slide-up шторка (Модальное окно) */
+        .backdrop {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-color);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 24px 16px 32px 16px;
+            z-index: 21;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .backdrop.active .sheet {
+            transform: translateY(0);
+        }
+
+        .sheet-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .size-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .size-option {
+            border: 2px solid #EAEAEA;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .size-option.selected {
+            border-color: var(--accent-color);
+            background-color: rgba(255, 107, 0, 0.02);
+        }
+
+        .size-name {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .size-name span {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Экран успеха */
+        .success-screen {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-color);
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 32px;
+            text-align: center;
+            display: none;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .success-screen h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .success-screen p {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>PekaKebab 🐾</h1>
+        <p>Выбери свою идеальную шаурму</p>
+    </header>
+
+    <div class="menu-list" id="menu-container"></div>
+
+    <div class="bottom-bar">
+        <div class="order-summary">
+            <span>Ваш заказ:</span>
+            <span id="summary-text" style="color: var(--text-muted);">Не выбрано</span>
+        </div>
+        <button class="main-btn" id="checkout-btn" disabled onclick="submitOrder()">Оформить заказ</button>
+    </div>
+
+    <div class="backdrop" id="backdrop" onclick="closeModal(event)">
+        <div class="sheet" onclick="event.stopPropagation()">
+            <div class="sheet-title" id="modal-title">Выбор размера</div>
+            
+            <div class="size-selector">
+                <div class="size-option" onclick="selectSize('Маленький (S)', 0, this)">
+                    <div class="size-name">Маленький <span>Размер S</span></div>
+                    <div id="price-s">0 ₽</div>
+                </div>
+                <div class="size-option selected" onclick="selectSize('Средний (M)', 50, this)">
+                    <div class="size-name">Средний <span>Размер M</span></div>
+                    <div id="price-m">+50 ₽</div>
+                </div>
+                <div class="size-option" onclick="selectSize('Большой (L)', 100, this)">
+                    <div class="size-name">Большой <span>Размер L</span></div>
+                    <div id="price-l">+100 ₽</div>
+                </div>
+            </div>
+
+            <button class="main-btn" onclick="addToCart()">Добавить в заказ</button>
+        </div>
+    </div>
+
+    <div class="success-screen" id="success-screen">
+        <div class="success-icon">🕒</div>
+        <h2>Заказ принят!</h2>
+        <p>Время ожидания: 15-20 минут.<br>Мы сообщим вам в чате, когда всё будет готово!</p>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Расширяем на весь экран
+
+        // Данные меню
+        const menuItems = [
+            { id: 1, name: "Классическая", price: 250 },
+            { id: 2, name: "Сырная", price: 280 },
+            { id: 3, name: "Острая", price: 270 },
+            { id: 4, name: "Грибная", price: 290 },
+            { id: 5, name: "Барбекю", price: 300 },
+            { id: 6, name: "Вега", price: 240 },
+            { id: 7, name: "Цезарь", price: 320 },
+            { id: 8, name: "Фирменная", price: 350 },
+            { id: 9, name: "Мясная", price: 340 },
+            { id: 10, name: "Двойная", price: 400 }
+        ];
+
+        let currentItem = null;
+        let selectedSizeName = "Средний (M)";
+        let selectedSizeModifier = 50;
+        let finalOrder = null;
+
+        // Генерация меню на экране
+        const container = document.getElementById('menu-container');
+        menuItems.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'menu-card';
+            card.onclick = () => openModal(item);
+            card.innerHTML = `
+                <div class="card-info">
+                    <h3>${item.name}</h3>
+                    <p>Отборные ингредиенты</p>
+                </div>
+                <div class="card-price">${item.price} ₽</div>
+            `;
+            container.appendChild(card);
+        });
+
+        // Логика модального окна
+        function openModal(item) {
+            currentItem = item;
+            document.getElementById('modal-title').innerText = item.name;
+            
+            // Динамический расчет цен для шторки
+            document.getElementById('price-s').innerText = `${item.price} ₽`;
+            document.getElementById('price-m').innerText = `${item.price + 50} ₽`;
+            document.getElementById('price-l').innerText = `${item.price + 100} ₽`;
+
+            // Сброс на дефолтный "Средний" при открытии
+            selectedSizeName = "Средний (M)";
+            selectedSizeModifier = 50;
+            const options = document.querySelectorAll('.size-option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[1].classList.add('selected');
+
+            document.getElementById('backdrop').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('backdrop').classList.remove('active');
+        }
+
+        function selectSize(sizeName, modifier, element) {
+            selectedSizeName = sizeName;
+            selectedSizeModifier = modifier;
+            
+            document.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        // Кнопка добавления промежуточного выбора
+        function addToCart() {
+            const totalPrice = currentItem.price + selectedSizeModifier;
+            finalOrder = {
+                title: currentItem.name,
+                size: selectedSizeName,
+                price: totalPrice
+            };
+
+            // Обновляем состояние нижней панели оформления
+            document.getElementById('summary-text').innerHTML = `<b style="color:var(--text-color)">${finalOrder.title} (${finalOrder.size}) — ${finalOrder.price} ₽</b>`;
+            document.getElementById('checkout-btn').removeAttribute('disabled');
+            closeModal();
+        }
+
+        // Отправка данных в бота
+        function submitOrder() {
+            if (!finalOrder) return;
+            
+            // Передаем структурированный JSON обратно боту
+            tg.sendData(JSON.stringify(finalOrder));
+            
+            // Переключаем интерфейс на экран успешного завершения заказа
+            document.getElementById('success-screen').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
